@@ -1,0 +1,111 @@
+{{- if .Values.node.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: corda-node-{{ .Values.node.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  {{- if not .Values.node.autoscaling.enabled }}
+  replicas: {{ .Values.node.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "corda-node.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "corda-node.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+        # runAsGroup: 1000
+        # fsGroup: 1000
+      initContainers:
+        - name: init-corda
+          image: amazon/aws-cli:latest
+          command: ["/bin/sh", "-c"]
+          {{- if .Values.node.remoteSyncCordapps.enabled }}
+          args:
+            - >-
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/node.conf /etc/corda/node.conf && 
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/certificates/ /opt/corda/certificates --recursive && 
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/persistences  /opt/corda/persistence --recursive && 
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/cordapps/ /opt/corda/cordapps --recursive && 
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/additional-node-infos/ /opt/corda/additional-node-infos --recursive && 
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/network-parameters /opt/corda/network-parameters &&
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/logs/ /opt/corda/logs --recursive
+          {{- else }}
+          args:
+            - >-
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/node.conf /etc/corda/node.conf && 
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/certificates/ /opt/corda/certificates --recursive && 
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/persistences  /opt/corda/persistence --recursive && 
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/additional-node-infos/ /opt/corda/additional-node-infos --recursive && 
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/network-parameters /opt/corda/network-parameters &&
+              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/logs/ /opt/corda/logs --recursive
+          {{- end }}
+          volumeMounts:
+            - mountPath: /etc/corda
+              name: {{ .Values.node.name }}-etc
+            - mountPath: /opt/corda/
+              name: {{ .Values.node.name }}-network-parameters
+            - mountPath: /opt/corda/certificates
+              name: {{ .Values.node.name }}-certificates
+            - mountPath: /opt/corda/persistence
+              name: {{ .Values.node.name }}-persistence
+            - mountPath: /opt/corda/logs
+              name: {{ .Values.node.name }}-logs
+            {{- if .Values.node.remoteSyncCordapps.enabled }}
+            - mountPath: /opt/corda/cordapps
+              name: {{ .Values.node.name }}-cordapps
+            {{- end }}
+            - mountPath: /opt/corda/additional-node-infos
+              name: {{ .Values.node.name }}-additional-node-infos
+      containers:
+        - name: corda
+          image: "{{ .Values.node.image }}:{{ .Values.node.imageTag }}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: {{ .Values.service.p2paddress.targetPort }}
+              name: p2paddress
+            - containerPort: {{ .Values.service.rpcaddress.targetPort }}
+              name: rpcaddress
+            - containerPort: {{ .Values.service.rpcadminadress.targetPort }}
+              name: rpcadminadress
+          volumeMounts:
+            - mountPath: /etc/corda
+              name: {{ .Values.node.name }}-etc
+            - mountPath: /opt/corda/network-parameters
+              subPath: network-parameters
+              name: {{ .Values.node.name }}-network-parameters
+            - mountPath: /opt/corda/certificates
+              name: {{ .Values.node.name }}-certificates
+            - mountPath: /opt/corda/persistence
+              name: {{ .Values.node.name }}-persistence
+            - mountPath: /opt/corda/logs
+              name: {{ .Values.node.name }}-logs
+            {{- if .Values.node.remoteSyncCordapps.enabled }}
+            - mountPath: /opt/corda/cordapps
+              name: {{ .Values.node.name }}-cordapps
+            {{- end }}
+            - mountPath: /opt/corda/additional-node-infos
+              name: {{ .Values.node.name }}-additional-node-infos
+      volumes:
+      - name: {{ .Values.node.name }}-etc
+        emptyDir: {}
+      - name: {{ .Values.node.name }}-certificates
+        emptyDir: {}
+      - name: {{ .Values.node.name }}-persistence
+        emptyDir: {}
+      - name: {{ .Values.node.name }}-logs
+        emptyDir: {}
+      {{- if .Values.node.remoteSyncCordapps.enabled }}
+      - name: {{ .Values.node.name }}-cordapps
+        emptyDir: {}
+      {{- end }}
+      - name: {{ .Values.node.name }}-additional-node-infos
+        emptyDir: {}
+      - name: {{ .Values.node.name }}-network-parameters
+        emptyDir: {}
+{{- end }}
