@@ -72,7 +72,7 @@ configmap:
   enabled: true
   appended:
     FABRIC_CA_SERVER_HOME: /etc/hyperledger/fabric-ca-server/shared
-    BUCKET_ARTIFACTS_SHARED: minibank-corda-artifacts
+    BUCKET_ARTIFACTS_SHARED: template
     ORG_NAME: template
   appendedMultiline: {}
     # config.js: |

@@ -28,22 +28,22 @@ spec:
           {{- if .Values.node.remoteSyncCordapps.enabled }}
           args:
             - >-
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/node.conf /etc/corda/node.conf && 
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/certificates/ /opt/corda/certificates --recursive && 
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/persistences  /opt/corda/persistence --recursive && 
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/cordapps/ /opt/corda/cordapps --recursive && 
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/additional-node-infos/ /opt/corda/additional-node-infos --recursive && 
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/network-parameters /opt/corda/network-parameters &&
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/logs/ /opt/corda/logs --recursive
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/node.conf /etc/corda/node.conf && 
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/certificates/ /opt/corda/certificates --recursive && 
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/persistences  /opt/corda/persistence --recursive && 
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/cordapps/ /opt/corda/cordapps --recursive && 
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/additional-node-infos/ /opt/corda/additional-node-infos --recursive && 
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/network-parameters /opt/corda/network-parameters &&
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/logs/ /opt/corda/logs --recursive
           {{- else }}
           args:
             - >-
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/node.conf /etc/corda/node.conf && 
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/certificates/ /opt/corda/certificates --recursive && 
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/persistences  /opt/corda/persistence --recursive && 
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/additional-node-infos/ /opt/corda/additional-node-infos --recursive && 
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/network-parameters /opt/corda/network-parameters &&
-              aws s3 cp s3://minibank-corda-artifacts/{{ .Values.projectName }}/{{ .Values.node.name }}/logs/ /opt/corda/logs --recursive
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/node.conf /etc/corda/node.conf && 
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/certificates/ /opt/corda/certificates --recursive && 
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/persistences  /opt/corda/persistence --recursive && 
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/additional-node-infos/ /opt/corda/additional-node-infos --recursive && 
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/network-parameters /opt/corda/network-parameters &&
+              aws s3 cp s3://template/{{ .Values.projectName }}/{{ .Values.node.name }}/logs/ /opt/corda/logs --recursive
           {{- end }}
           volumeMounts:
             - mountPath: /etc/corda
