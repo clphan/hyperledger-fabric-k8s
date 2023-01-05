@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-servercnfig
+data:
+  fabric-ca-server-config.yaml: |+
+{{- $filename := printf "files/fabric-ca-server-config.yaml" }}
+{{- $file := .Files.Get $filename }}
+{{- if $file }}
+{{ tpl ($file) . | indent 4 }}
+{{- else }}
+{{ printf "ERROR: File not found %s" $filename }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-jobhelper
+data:
+  job-helper.sh: |+
+{{- $filename := printf "files/job-helper.sh" }}
+{{- $file := .Files.Get $filename }}
+{{- if $file }}
+{{ tpl ($file) . | indent 4 }}
+{{- else }}
+{{ printf "ERROR: File not found %s" $filename }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-inithelper
+data:
+  init-helper.sh: |+
+{{- $filename := printf "files/init-helper.sh" }}
+{{- $file := .Files.Get $filename }}
+{{- if $file }}
+{{ tpl ($file) . | indent 4 }}
+{{- else }}
+{{ printf "ERROR: File not found %s" $filename }}
+{{- end }}
+---
+{{- if .Values.configmap.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-envvar
+  namespace: {{ .Release.Namespace }}
+data:
+  {{ range $config, $configItem := .Values.configmap.appended -}}
+  {{ printf "%s: %s" $config ($configItem | quote) }}
+  {{ end -}}
+  {{ range $config, $configItem := .Values.configmap.appendedMultiline -}}
+  {{ printf "%s: |-" $config }}
+{{ $configItem | indent 4 }}
+  {{ end -}}
+{{- end -}}

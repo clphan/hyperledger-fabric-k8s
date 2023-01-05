@@ -1,0 +1,140 @@
+{{- if .Values.node.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.global.orgName }}-{{ .Values.global.component }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{- range $key, $val := .Values.node.labels }}
+    {{ $key }}: "{{ $val }}"
+{{- end }}
+spec:
+{{- if not .Values.node.autoscaleEnabled }}
+{{- if .Values.node.replicaCount }}
+  replicas: {{ .Values.node.replicaCount }}
+{{- end }}
+{{- end }}
+  strategy:
+    rollingUpdate:
+      maxSurge: {{ .Values.node.rollingMaxSurge }}
+      maxUnavailable: {{ .Values.node.rollingMaxUnavailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "node.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+      {{- range $key, $val := .Values.node.podLabels }}
+      {{ $key }}: "{{ $val }}"
+      {{- end }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "node.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        {{- range $key, $val := .Values.node.podLabels }}
+        {{ $key }}: "{{ $val }}"
+        {{- end }}
+      annotations:
+        {{- if .Values.node.podAnnotations }}
+{{ toYaml .Values.node.podAnnotations | indent 8 }}
+        {{- end }}
+    spec:
+{{- if .Values.node.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.node.nodeSelector | indent 8 }}
+{{- end }}
+{{- with .Values.node.affinity }}
+      affinity:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.node.tolerations }}
+      tolerations:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+      {{- with .Values.node.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.serviceAccount.enabled }}
+      serviceAccountName: {{ .Release.Name }}{{- if not (eq .Values.revision "") }}-{{ .Values.revision }}{{- end }}
+      {{- end }}
+{{- if .Values.global.priorityClassName }}
+      priorityClassName: "{{ .Values.global.priorityClassName }}"
+{{- end }}
+      securityContext:
+        {{- toYaml .Values.node.securityContext | nindent 8 }}
+      containers:
+        - name: {{ .Values.global.orgName }}
+          image: "{{ .Values.node.image.repository }}/{{ .Values.node.image.imagePrefix }}:{{ .Values.node.image.tag | default .Chart.AppVersion }}"
+{{- if .Values.global.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+{{- end }}
+          ports:
+            - containerPort: {{ .Values.node.image.containerPort }}
+              protocol: TCP
+          # args:
+          command:
+            [
+              "sh",
+              "-c",
+              "sleep 1 && fabric-ca-server start -d --port {{ .Values.node.image.containerPort }} -b $TLSCA_USER:$TLSCA_PASSWORD"
+            ]
+          envFrom:
+            {{- if .Values.node.envFrom.configMap.enabled }}
+            - configMapRef:
+                name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-envvar
+            {{- end }}
+            {{- if .Values.node.envFrom.secrets.enabled }}
+            - secretRef:
+                name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-envvar
+            {{- end }}
+            {{- if .Values.node.envFrom.externalSecrets.enabled }}
+            - secretRef:
+                name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-envvar
+            {{- end }}
+          resources:
+{{- if .Values.node.resources }}
+{{ toYaml .Values.node.resources | trim | indent 12 }}
+{{- else }}
+{{ toYaml .Values.global.defaultResources | trim | indent 12 }}
+{{- end }}
+          securityContext:
+            {{- toYaml .Values.node.podSecurityContext | nindent 12 }}
+          {{- if .Values.volumes.enabled }}
+          volumeMounts:
+            # {{- if .Values.volumes.configMap.enabled }}
+            # {{ range $config := .Values.volumes.configMap.appended -}}
+            # - mountPath: {{ .path }}
+            #   name: {{ .name }}
+            #   subPath: {{ .subPath }}
+            #   readOnly: {{ .readOnly }}
+            # {{- end }}
+            # {{- end }}
+            - name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-servercnfig
+              mountPath: "/etc/hyperledger/fabric-ca-server/shared/fabric-ca-server-config.yaml"
+              subPath: fabric-ca-server-config.yaml
+            - name: shared-data
+              mountPath: /etc/hyperledger/fabric-ca-server/shared
+          {{- end }}
+      {{- if .Values.volumes.enabled }}
+      volumes:
+        # {{- if .Values.volumes.configMap.enabled }}
+        # {{ range $config := .Values.volumes.configMap.appended -}}
+        # - name: {{ .name }}
+        #   configMap:
+        #     name: {{ .name }}
+        # {{end -}}
+        # {{- end }}
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.global.orgName }}-{{ .Values.global.component }}-shared
+        - name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-servercnfig
+          configMap:
+            defaultMode: 0777
+            name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-servercnfig
+            items:
+            - key: fabric-ca-server-config.yaml
+              path: fabric-ca-server-config.yaml
+      {{- end }}
+{{- end }}

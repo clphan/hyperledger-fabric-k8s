@@ -1,0 +1,119 @@
+global:
+  orgName: template
+  component: tlsca
+
+node:
+  enabled: true
+  labels: {}
+  podLabels: {}
+  autoscaleEnabled: false
+  replicaCount: 1
+  rollingMaxSurge: 1
+  rollingMaxUnavailable: 1
+  nodeSelector: {}
+  affinity: {}
+  tolerations: {}
+  imagePullSecrets: {}
+  securityContext:
+    # {}
+    fsGroup: 0
+  
+  podSecurityContext:
+    runAsUser: 0
+    runAsGroup: 0
+    # {}
+    # allowPrivilegeEscalation: false
+    # readOnlyRootFilesystem: true
+    # runAsUser: 1337
+    # runAsGroup: 1337
+    # runAsNonRoot: true
+    # capabilities:
+    #   drop:
+    #   - ALL
+
+  image:
+    repository: hyperledger
+    imagePrefix: fabric-ca
+    tag: 1.4.4
+    containerPort: 7054
+
+  envFrom:
+    configMap:
+      enabled: true
+    secrets:
+      enabled: true
+    externalSecrets:
+      enabled: false
+  
+  resources:
+    requests:
+      memory: "250Mi"
+      cpu: "250m"
+    limits:
+      memory: "450Mi"
+      cpu: "300"
+
+service:
+  enabled: true
+  type: ClusterIP
+  name: http
+  port: 7054
+  targetPort: 7054
+  protocol: TCP
+  labels: {}
+  annotations: {}
+
+serviceAccount:
+  enabled: false
+  name: template
+  serviceAccount: {}
+
+configmap:
+  enabled: true
+  appended:
+    FABRIC_CA_SERVER_HOME: /etc/hyperledger/fabric-ca-server/shared
+    BUCKET_ARTIFACTS_SHARED: minibank-corda-artifacts
+    ORG_NAME: template
+  appendedMultiline: {}
+    # config.js: |
+    #   key1 = value1
+    #   key2 = value2
+
+volumes:
+  enabled: true
+  configMap:
+    enabled: true
+    appended:
+      - path: "/etc/hyperledger/fabric-ca-server/shared/fabric-ca-server-config.yaml"
+        name: template-server-cm
+        subPath: fabric-ca-server-config.yaml
+        readOnly: true
+      - path: "/etc/hyperledger/fabric-ca-server/shared/certs.sh"
+        name: template-server-cm
+        subPath: certs.sh
+        readOnly: true
+  secret:
+    enabled: false
+    path: {}
+
+config:
+  version: 0.0.1
+  ca:
+    name: template-tlsca
+    caUser: dGxzLWFkbWlu
+    caPassword: dGxzLWFkbWlucHc=
+  csr:
+    hosts: template-tlsca
+    pathlength: 1
+  tls:
+    enabled: true
+  tlsCa:
+    enabled: true
+  orgCa:
+    enabled: false
+    tlsCertfile: "tls/cert.pem"
+    tlsKeystore: "tls/key.pem"
+  operations: 
+    listenAddress:
+      host: 127.0.0.1
+      port: 9443

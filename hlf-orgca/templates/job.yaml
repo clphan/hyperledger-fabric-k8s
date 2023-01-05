@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.global.orgName }}-{{ .Values.global.component }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  template:
+    spec:
+      containers:
+        - name: job-helper
+          image: hyperledger/fabric-ca-tools:latest
+          command: ["/bin/sh"]
+          args: ["-c", "/data/job-helper.sh"]
+          volumeMounts:
+          - name: shared-scripts
+            mountPath: /data/job-helper.sh
+            subPath: job-helper.sh
+          - name: shared-data
+            mountPath: /shared
+          envFrom:
+            {{- if .Values.node.envFrom.configMap.enabled }}
+            - configMapRef:
+                name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-envvar
+            {{- end }}
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.global.orgName }}-{{ .Values.global.component }}-shared
+        - name: shared-scripts
+          configMap:
+            defaultMode: 0777
+            name: {{ .Values.global.orgName }}-{{ .Values.global.component }}-jobhelper
+            items:
+            - key: job-helper.sh
+              path: job-helper.sh
+      restartPolicy: Never
+  backoffLimit: 4

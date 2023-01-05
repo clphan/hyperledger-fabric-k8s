@@ -1,0 +1,105 @@
+# Version of config file
+version: {{ .Values.config.version }}
+
+# Server's listening port (default: 7054)
+port: {{ .Values.service.port }}
+
+tls:
+  # Enable TLS (default: false)
+  enabled: {{ .Values.config.tls.enabled }}
+  # TLS for the server's listening port
+  {{- if .Values.config.orgCa.enabled }}
+  certfile: {{ .Values.config.orgCa.tlsCertfile }}
+  keyfile: {{ .Values.config.orgCa.tlsKeystore }}
+  {{- end }}
+  clientauth:
+    type: noclientcert
+    certfiles:
+
+ca:
+  # Name of this CA
+  name: {{ .Values.config.ca.name }}
+  # Key file (is only used to import a private key into BCCSP)
+  keyfile: 
+  # Certificate file (default: ca-cert.pem)
+  certfile:
+  # Chain file
+  chainfile:
+
+registry:
+  # Maximum number of times a password/secret can be reused for enrollment
+  # (default: -1, which means there is no limit)
+  maxenrollments: -1
+
+  # Contains identity information which is used when LDAP is disabled
+  identities:
+    - name: org-admin
+      pass: org-adminpw
+      type: client
+      affiliation: ""
+      attrs:
+        hf.Registrar.Roles: "*"
+        hf.Registrar.DelegateRoles: "*"
+        hf.Revoker: true
+        hf.IntermediateCA: true
+        hf.GenCRL: true
+        hf.Registrar.Attributes: "*"
+        hf.AffiliationMgr: true
+
+signing:
+  default:
+    usage:
+      - digital signature
+    expiry: 8760h
+  profiles:
+    {{- if .Values.config.orgCa.enabled }}
+    ca:
+      usage:
+        - cert sign
+        - crl sign
+      expiry: 43800h
+      caconstraint:
+        isca: true
+        maxpathlen: 0
+    {{- end }}
+    {{- if .Values.config.tlsCa.enabled }}
+    tls:
+      usage:
+        - signing
+        - key encipherment
+        - server auth
+        - client auth
+        - key agreement
+      expiry: 8760h
+    {{- end }}
+
+csr:
+   cn: {{ .Values.config.csr.hosts }}
+   keyrequest:
+     algo: ecdsa
+     size: 256
+   names:
+      - C: US
+        ST: "North Carolina"
+        L:
+        O: Hyperledger
+        OU: Fabric
+   hosts:
+     - {{ .Values.config.csr.hosts }}
+     - localhost
+   ca:
+      expiry: 131400h
+      pathlength: {{ .Values.config.csr.pathlength }}
+
+idemix:
+  rhpoolsize: 1000
+  nonceexpiration: 15s
+  noncesweepinterval: 15m
+
+operations:
+    # host and port for the operations server
+    listenAddress: {{ .Values.config.operations.listenAddress.host }}:{{ .Values.config.operations.listenAddress.port }}
+
+metrics:
+    # statsd, prometheus, or disabled
+    provider: disabled
